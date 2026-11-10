@@ -94,6 +94,13 @@ jobs:
                   path.write_text(text.replace('dynamic = ["version"]', f'version = "{os.environ["VERSION"]}"\ndynamic = []', 1))
                   EOF
 
+            # cibuildwheel's `build[uv]` frontend runs uv on the runner itself on macOS (on Linux it
+            # builds inside its own containers, which carry uv), and the macOS runner has none.
+            - name: Install uv
+              uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+              with:
+                  enable-cache: 'false'
+
             - name: Build and test the wheels
               uses: pypa/cibuildwheel@f9b966cfadf4109556cadc5bb39ddb72d0ce664e # v4.3.5
 
