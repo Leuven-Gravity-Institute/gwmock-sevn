@@ -66,11 +66,12 @@ default.
 ## Relation to SEVN
 
 The SEVN source is vendored in `extern/sevn` from the release named in
-`extern/sevn/VENDORED`. It carries one change,
-`patches/0001-sevn-path-from-environment.patch`. That change lets the installed
-program find its auxiliary data through `SEVN_PATH`, rather than through the
-path it was compiled in. SEVN is distributed under its own MIT licence,
-installed with the package as `gwmock_sevn/data/SEVN_LICENSE`.
+`extern/sevn/VENDORED`. It carries two changes, in `patches/`. The first lets
+the installed program find its auxiliary data through `SEVN_PATH`, rather than
+through the path it was compiled in. The second makes SEVN's build report SEVN's
+own commit when it is built inside this package, and keeps its generated header
+out of the source tree. SEVN is distributed under its own MIT licence, installed
+with the package as `gwmock_sevn/data/SEVN_LICENSE`.
 
 If you use this package, cite SEVN: Iorio et al. 2023, MNRAS 524, 426, and the
 references in SEVN's documentation.

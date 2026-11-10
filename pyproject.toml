@@ -71,7 +71,10 @@ sdist.exclude = [
 build.verbose = false
 
 [tool.setuptools_scm]
-write_to = "src/gwmock_sevn/_version.py"
+version_file = "src/gwmock_sevn/_version.py"
+# No local part (+g<commit>, .d<date>): PyPI refuses it, and a tree that becomes dirty during a build
+# (`uv sync --upgrade` rewrites uv.lock) would give the two metadata passes different versions.
+local_scheme = "no-local-version"
 
 [tool.cibuildwheel]
 build = "cp313-* cp314-*"
