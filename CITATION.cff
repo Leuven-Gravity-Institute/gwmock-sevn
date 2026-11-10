@@ -1,7 +1,8 @@
 cff-version: 1.2.0
 title:
-    'python-package-template: A GitHub template repository for a Python package'
-license: 'BSD'
+    'gwmock-sevn: the SEVN binary population-synthesis code as an installable
+    Python package'
+license: 'BSD-3-Clause'
 type: software
 authors:
     - given-names: Isaac C. F.
@@ -9,6 +10,18 @@ authors:
       affiliation: KU Leuven
       orcid: 'https://orcid.org/0000-0003-2166-0027'
 keywords:
-    - python
-    - github
-    - template
+    - gravitational waves
+    - population synthesis
+    - binary evolution
+references:
+    - type: article
+      title:
+          'Compact object mergers: exploring uncertainties from stellar and
+          binary evolution with SEVN'
+      authors:
+          - family-names: Iorio
+            given-names: Giuliano
+      journal: Monthly Notices of the Royal Astronomical Society
+      volume: 524
+      start: 426
+      year: 2023

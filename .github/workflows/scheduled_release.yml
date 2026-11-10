@@ -154,8 +154,17 @@ jobs:
         with:
             tag_name: ${{ needs.create_tag.outputs.new_tag }}
 
-    publish:
+    build:
         needs: [release, create_tag]
+        if: vars.PUBLISH_TO_PYPI == 'true'
+        uses: ./.github/workflows/build_distributions.yml # zizmor: ignore[self-repository]
+        permissions:
+            contents: read
+        with:
+            ref: ${{ needs.create_tag.outputs.new_tag }}
+
+    publish:
+        needs: [build, create_tag]
         runs-on: ubuntu-latest
         # Set the repository variable PUBLISH_TO_PYPI to "true" once the
         # 'pypi' environment and PyPI trusted publishing are configured.
@@ -166,41 +175,19 @@ jobs:
             id-token: write
             contents: read
         steps:
-            - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+            - name: Download the distributions
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
-                  persist-credentials: false
-                  ref: ${{ needs.create_tag.outputs.new_tag }}
-                  fetch-depth: 0
-
-            - name: Output build information
-              env:
-                  TAG_NAME: ${{ needs.create_tag.outputs.new_tag }}
-              run: |
-                  echo "### Publishing Build :package:" >> $GITHUB_STEP_SUMMARY
-                  echo "- **Version tag**: $TAG_NAME" >> $GITHUB_STEP_SUMMARY
+                  name: python-package-distributions
+                  path: dist/
 
             - name: Install uv
               uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
               with:
-                  python-version: '3.13'
-
-            - name: Build distribution
-              run: uv build
-
-            - name: Smoke test (wheel)
-              run:
-                  uv run --isolated --no-project --with dist/*.whl
-                  tests/smoke_test.py
-
-            - name: Smoke test (source distribution)
-              run:
-                  uv run --isolated --no-project --with dist/*.tar.gz
-                  tests/smoke_test.py
+                  enable-cache: 'false'
 
             # `uv publish` does not generate PEP 740 attestations itself; it
             # uploads any `<distribution>.publish.attestation` files it finds.
-            # attest-action signs each distribution in `dist/` with the
-            # workflow's OIDC identity so PyPI records the provenance.
             - name: Generate PEP 740 attestations
               uses: astral-sh/attest-action@39b6ce43875c196a579e31635b11aa2a2036384a # v0.0.7
 

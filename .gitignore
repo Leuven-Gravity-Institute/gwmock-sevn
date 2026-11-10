@@ -136,3 +136,6 @@ dmypy.json
 
 # Node.js
 node_modules/
+src/gwmock_sevn/_version.py
+extern/sevn/include/sevn_version.h
+build/

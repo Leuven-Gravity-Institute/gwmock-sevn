@@ -1,0 +1,26 @@
+--- a/src/general/utils/utilities.h
++++ b/src/general/utils/utilities.h
+@@ -9,6 +9,7 @@
+ #include <omp.h>
+ #endif
+ 
++#include <cstdlib>
+ #include <vector>
+ #include <sstream>
+ #include <iomanip>
+@@ -595,6 +596,15 @@
+    * @return The absolute SEVN path
+    */
+   inline std::string get_absolute_SEVN_path(){
++        // gwmock-sevn: an installed executable no longer sits in the tree it was compiled in, so
++        // the folder holding auxiliary_data/ can be named at run time instead of being derived
++        // from this header's compile-time path.
++        const char* from_environment = std::getenv("SEVN_PATH");
++        if (from_environment != nullptr && from_environment[0] != '\0'){
++            std::string configured = from_environment;
++            if (configured.back() == '/') configured.pop_back();
++            return configured;
++        }
+         std::string here_token = "include/";
+         std::string sevn_path = __FILE__;
+         std::size_t found = sevn_path.rfind("/src/");

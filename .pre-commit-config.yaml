@@ -3,6 +3,9 @@ ci:
     # the zizmor job of .github/workflows/ci.yml instead.
     skip: [zizmor]
 
+# SEVN's vendored source and the patches to it are kept byte for byte as SEVN has them.
+exclude: '^(extern/|patches/)'
+
 repos:
     - repo: https://github.com/pre-commit/pre-commit-hooks
       rev: v6.0.0

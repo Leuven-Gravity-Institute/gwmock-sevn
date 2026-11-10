@@ -1,0 +1,339 @@
+V 2.17.5 [03-08-2026]
+    - Minor refactoring for dealing with the thread safety of process requiring the loading of shared tables (e.g. Death Matrix)
+V 2.17.4 [23-07-2026]
+    - Added the new RLO stability criteria (qcrit_betadep) from the paper Echeveste+26: https://ui.adsabs.harvard.edu/abs/2026arXiv260630303E/abstract
+V 2.17.3 [03-07-2026]
+    - NEW RLO formalim: Added the new RLO formalism tauris_rl. It uses equations 4.58 in the Tauris&VandenHeuvel book (https://ui.adsabs.harvard.edu/abs/2023pbse.book.....T/abstract)
+                        It only changes the semimajor axis and it neglects the orbital-spin coupling or spin-up and sping-down due to RLO mass transfer.
+                        There are new four runtime parameter (rlo_tauris_alfa,rlo_tauris_beta, rlo_tauris_delta, rlo_tauris_gamma) used to set the evolution of the RLO.
+    - NEW binary wind formalim:   Added the new wind formalism tauris.   It uses Eq. 4.38 in the Tauris&VandenHeuvel book (https://ui.adsabs.harvard.edu/abs/2023pbse.book.....T/abstract).
+                        The spin-up due to mass accretion is neglected, the maximum mass accreted is like in the formalism hurleyTT24mode.
+
+V 2.17.1 [27-05-2026]
+    - BUG-FIX-1: Fixed a bug on the isotropic sampling of directions for the Disberg25 kicks
+    - BUG-FIX-2: Fixed a bug on isotropic sampling of a specif correction of the kicks when the kicks is 0 but the minimum kick is set to >0
+
+V 2.17.0 [08-05-2026]
+    - CHANGE:    COWD/ONeWD classification now (really) follows the Hurley+00 criterion (Section 6).
+                 The WD type is determined by the helium core mass at the base of the AGB.
+                 (M_{c,BAGB}): COWD if M_{c,BAGB} < 1.6 Msun, ONeWD otherwise.
+                  The base of the AGB is identified with the start of the SHeBurning phase.
+                        An auxiliary star is initialised at that phase to retrieve the core mass
+                        from the interpolating track.
+
+V 2.16.1 [29-04-2026]
+    - **Bug fix:** the  version  2.16.0 introduced a small bug in which during the WD formation a pointer was never freed producing a minor memory leak. This has been fixed. 
+
+V 2.16.0 [20-04-2026] (small typo correction still using the version 2.16.0
+    - Correct a typo in the parameter name eddington_factor.
+
+V 2.16.0 [17-04-2026]
+    - NEW: Introducing the folder apps, which contains alternative executables for specific tasks.
+           In principle this could become a folder storing community codes and sevnB will be just one of them.
+    - NEW: Introduced a new stellar property Reff (effective stellar radius).
+           By default, Reff is equal to the stellar radius. If the star is undergoing Roche-Lobe Overflow (RLO),
+           Reff is set to the Roche-Lobe radius (or slightly larger than the core radius if the Roche-Lobe
+           lies inside the core). In almost all processes and property calculations, the stellar radius has been
+           replaced with Reff, ensuring full self-consistency regardless of whether a process is defined in terms
+           of angular momentum variations (dJ) or angular velocity variations (dOmega).
+           A runtime parameter use_always_Reff has been introduced:
+             - If use_always_Reff = True, SEVN will always use Reff.
+             - If use_always_Reff = False, SEVN will continue to use the stellar radius instead.
+           NOTICE: These updates are still under testing. To use this feature, always call the star methods
+           get_Reff() and getp_0_Reff() rather than accessing the Reff property directly.
+    - FIX: Fixed a minor bug on the timestep. In the previous version after a timestep smaller
+           than TINY, the next timestep is set to 1E-7 to avoid being stuck on very small timesteps
+           (this timestep can be anyway modified and rejected by the adaptive timestep). This created
+           a problem when the amount of time before the simulation end is smaller than that value
+           (either because of user ending time input or because we are close to the ending time).
+           Now this value is the minimum between 1E-7 and half the remaining time to end the simulation.
+    - FIX: Changed find with rfind in get_absolute_SEVN_path.
+           This solves a problem in localising the right path if SEVN is inside nested folders in which
+           some parent folder already contains a /src/ folder.
+           With rfind we just get the last /src/ that should be the right one.
+    - FIX: Changed the default value for the parameter sn_kick_velocity_stdev from 265 km/s (as in Hobbs+05) to
+           217 km/s (as in Disberg&Mandel25, https://ui.adsabs.harvard.edu/abs/2025ApJ...989L...8D/abstract).
+           In Disberg&Mandel25, they show that the 265 km/s was likely due to an error in the analysis of the data
+           in Hobbs+05 (a missing Jacobian when working in the log-space).
+    - FIX: Fixed a behaviour that was producing the wrong events when a star was set to swallow because mass fell
+           below the threshold of 0.01 Msun. Before the event was set through the process RLOB, but if this happened
+           at the beginning of mass transfer it could hide the current RLOB event. Fixed by using the Tides process.
+    - FIX: Minor bug fix: set_empty was not doing any action for JIT properties, this caused a bug in which these
+           properties are not updated after the formation of a massless remnant. Now the parent JIT class sets V=nan;
+           specific properties override this behaviour:
+             - Zams, Zmet: do nothing (so that we can recover the properties of the last tracks the object was following)
+             - Event, PhaseBSE: just call an evolve so it increases the counter, and the get handles the massless case
+    - CHANGE: Introduced the runtime parameter ev_use_track_radius_for_Qconv (default: true). When enabled, the track
+              radius is used for the convective-envelope fit used to set the BSE phase 3, mitigating a spurious heating
+              effect arising from the new Reff implementation during RLO.
+    - CHANGE: Updated CommonEnvelope::special_evolve and CommonEnvelope::main_coalesce for a more self-consistent
+              handling of the situation in which a failed CE triggers a Swallow because one star is a compact remnant
+              (BH, NS, WD) and the other a star. Now the logfile will report both the MERGER and SWALLOW messages,
+              while the BEvent will be 22 (CE_Swallowed).
+    - ADDITION: Added the runtime parameter io_logphase_bse. If true, all stellar phases in the logfile are the BSE ones.
+    - ADDITION: Added an option (star_rotation) to disable completely the star rotation (always fixed to 0).
+    - ADDITION: Change on the JIT property PhaseBSE to allow to call get_0.
+    - INTERNAL: Removed outdated python scripts and tutorials.
+    - INTERNAL: Added folder to transform output to T0 format (requires documentation).
+
+V 2.15.1 [01-09-2025]
+    -     FIX: Fixed a typo in the Phase check when MCO>0 in the custom mass initialisation
+               (before an error was raised for a star initialised with MCO>0 in the terminal core helium
+                burning phase)
+V 2.15.0 [31-08-2025]
+    -   COMPATIBILITY: CMAKE is dropping the support for older Cmake version, so now the minimum version for SEVN
+                       is the 3.5 (but 3.10 is suggested), please update your version if needed.
+	-	FIX: Fixed an issue in the treatment of tides during Roche Lobe Overflow (RLO).
+             Previously, an incorrect rescaling of stellar inertia was applied when estimating
+             the variation of the stellar angular momentum.
+             This resulted in an excessive sink of angular momentum during RLO.
+    -  CHANGE:  Improved treatment of Roche Lobe Overflow (RLO) edge cases.
+                Specifically, systems where the stellar core radius becomes larger than the orbital semi-major axis are
+                now flagged as unstable and forced into a Common Envelope (CE) event.
+                This situation is physically unrealistic but indicates an extremely tight binary
+                that would inevitably merge. In the standard CE model, these cases correctly end in a merger.
+                This modification apply to the standard Hurley RLO options  (hurley, hurley_bse, hurley_rl_propeller,
+                 hurleymod).
+    - CHANGE:      We removed the restriction on rlo_gamma_angmom > 1. This parameter defines how angular momentum
+                       is lost from the system during non-conservative mass transfer in Roche lobe overflow. Previously,
+                       due to a misinterpretation, rlo_gamma_angmom was artificially limited to values below 1. However,
+                       when modeling angular momentum loss through a circumbinary disc, this parameter represents the
+                       ratio sqrt(a_disc / a_binary), where a_disc is the semimajor axis of the circumbinary disc and
+                       a_binary that of the binary. For physical consistency, this ratio should generally be larger than 1.
+                       Nevertheless, the code does not impose any restriction on using values between 0 and 1.
+    - CHANGE:  In the current version, during super-Eddington accretion onto compact remnants or when a nova occurs
+               during Roche lobe overflow, the angular momentum loss is no longer automatically set using isotropic
+               re-emission as in previous versions. Instead, the value specified by the user through the
+               rlo_gamma_angmom option is applied.
+    - CHANGE:  In previous versions, swallowing during RLO was forbidden for stars with a core, triggering an error.
+               With the new condition (donor RHE > semimajor axis), this case is now allowed and the check has been
+               removed.
+    - CHANGE:  We slightly relax the check on the spin variation (Spin=Omega/Omega_crit) of stars for binary processes.
+               If the initial Spin is <0.1, we allow a maximum variation of 0.1 (before it was 0.01).
+               This help in avoiding stalling systems without having a strong impact on the evolution path.
+    -  ADDITION: The new RemnantType BWD (Brown Dwarf) has been added. It is intended to represent brown dwarf objects,
+                 but at the moment it is only a non-tested prototype. A BWD can appear either by initializing an object
+                 from the beginning with the suffix "BWD" in the mass, or by enabling the parameter
+                 rlo_allow_browndwarf_formation, in which case it will be produced if, during RLO, a main-sequence
+                  donor is stripped below 0.01 Msun, when this happen a BWD log message will appear in the log file.
+    -  ADDITION: Added runtime parameter ts_tinydt_binary_fix (default: true).
+                 When enabled, this improves the stability and convergence of binary simulations
+                 by accepting all steps with timestep < 1e-15 Myr (note: this does not affect
+                 the single stellar evolution timestep). Users are encouraged to perform
+                 tests to ensure that the fix does not introduce artifacts in
+                 their simulations. Previously, this behavior was always applied by default.
+	-  ADDITION: Added a new, more flexible constructor for the Star class, allowing custom definitions of stellar mass(es).
+                 If the input mass is provided in round parentheses ( .. ),
+                 the current total mass and/or core masses can be specified manually for H-stars:
+	                 - 2 values (Mzams, Mcurrent): Mzams = ZAMS mass used to select the interpolating track.
+	                                               Mcurrent = current stellar mass. Example: (40,20) → Star is
+	                                               initialized with the interpolating track
+	                                               of a 40 Msun ZAMS star, but its current mass
+	                                               is set to 20 Msun (interpolating tracks remain unchanged).
+                     - 4 values (Mzams, Mcurrent, MHEcurrent, MCOcurrent): First two values as above.
+                                                  MHEcurrent = current He-core mass.
+                                                  MCOcurrent = current CO-core mass.
+                                                  Example: (40,20,10,0) → Track as for Mzams=40 Msun, but current total
+	                                              mass is set to 20 Msun and He-core mass to 10 Msun.
+                                                  Note: SEVN checks consistency with the starting time.
+                                                  For instance, (40,20,10,0) at ZAMS is invalid since MHE>0 is
+                                                  not expected at ZAMS → SEVN returns an error.
+                 For pure He stars:
+                      - 2 values (MzamsHE, Mcurrent)HE: MzamsHE = initial He-star mass used for track
+                      selection on pureHe tables.
+	                  Mcurrent = current He-star mass (total mass = He-core mass).
+	                  - 3 values (MzamsHE, Mcurrent, MCOcurrent)HE: Same as above, but MCOcurrent sets
+	                   the current CO-core mass.
+	                   Note: As for H stars, SEVN checks consistency between the input and the evolutionary stage.
+	                   If inconsistent, an error is returned.
+
+
+V 2.14.1 [15-01-2025]
+    - Fixed installation files for conda environments setup and readme in the 'installfix' branch:
+       1. Removed old conda_senv_env.txt and conda_sevn_python_env_V2.txt files; added new `env_sevn.yaml` and `env_sevnpy.yaml` files
+            The old files caused conflict in installation on macOS systems.
+            The issue: macOS tried to install packages available only for linux, including compilers, since .txt files linked to linux repositories.
+            Fix: Now only the package name is required, without versioning, and will be downloaded from conda-forge repository
+            The `compilers` package automatically detects the current system and downloads the correct correspondent compilers.
+            Now it is possible to create SEVN and SEVNpy on both linux and macOS systems (both tested), possibly also on Windows (not tested yet).
+            Thus, the folder has been renamed just `conda_sevn_environment`.
+       2. Updated `Conda environments section` in Readme file with the new terminal line to use to create conda environment from .yaml files
+       3. Typo corrected in `Run scripts` Readme section (it prepared for execution the compile.sh instead of the run.sh file)
+       4. Bug fixed in the `compile.sh` file that prevented compilation in the correct folders (`..` removed in line 125)
+V 2.14.0 [14-01-2025]
+    - Introduced a new method to estimate the transition between radiative and convective envelope,
+      and thus the transition between the BSE HG and the RGB phase when the convective tables are not available.
+      The transition is based on Teff, and the transition temperature from a full radiative to
+      fully convective envelope is based on fit made on the PARSEC_ov05 tracks and depend on the mass and metallicity
+      of the star.
+V 2.13.0 [19-12-2024]
+    - Fixed two bugs affecting the evolution of white dwarf (WD) stars:
+        1. Moved the accretion check on compact objects to occur after the update of binary evolution properties.
+             This ensures that the timestep is correctly checked even if a Type Ia supernova (SN Ia) is triggered.
+        2. Fixed an issue in the accretion check that relied only on the current timestep's accretion, rather than
+            considering the cumulative accretion over time.
+    - Added a new JIT property, `dMcumul_remnant`, to track the cumulative mass accretion on compact remnants
+         (black holes [BH], neutron stars [NS], and white dwarfs [WD]).
+V 2.12.0 [19-11-2024]
+    - Fixed a bug on the method that we use to transform from SEVN phases to BSE types. Due to a typo,
+      naked helium stars in the Terminal-Core helium burning phase were assigned to BSE type 7 instead of 8.
+V 2.11.2 [10-11-2024]
+    -Added the wind mode hurleyTT24mod and set it as the default value.
+     This option is a modified version of the Hurley formalism, with the only change being in the maximum accretion
+     efficiency. In the original Hurley et al. (2002) version, the maximum accretion efficiency is set to 0.8.
+     In this modified version, we instead use the maximum accretion efficiency derived by Tejeda & Toalá (2024) (https://arxiv.org/pdf/2411.01755)
+     in the limit of high orbital velocity (where vorb >= vwind).
+     The maximum accretion efficiency is equal to m_accretor/Mtotal.
+     The maximum accretion efficiency is defined as the ratio m_accretor / M_total.
+V 2.11.1 [08-11-2024]
+    - Changed the default value of the parameter  runtime rlo_stable_ms from true to false.
+      Now the mass transfer for Main Sequence star is not stable by default.
+V 2.11.0 [08-11-2024]
+    This version introduces a change in the adaptive time-stepping to improve the code's robustness
+    against numerical errors. Due to this change, the outputs of older SEVN versions can differ when
+    initial same initial conditions are used.
+    -  Now, whenever the last timestep is equal to or smaller than a predefined small value (TINY),
+       the step is always accepted, and the subsequent timestep is set to a small but manageable value of 1e-7
+        (approximately one month). This adjustment improves numerical stability in future steps,
+       as the time derivative is estimated using 1e-7 rather than the extremely small value 1e-15,
+        which could introduce numerical noise. This modification was prompted by findings that the proposed timestep
+        could vary based on system architecture (e.g., ARM CPU on macOS vs. AMD CPU on Linux),
+        which we aim to avoid for reproducibility. We tested on ARM CPU on mac os with GNU compiler
+        vs Intel CPU on Linux with gcc compiler and Intel CPU on Linux with icc compiler that the compatibility
+        of the results is drastically improved (the differences are almost negligible).
+    - Additionally, during the activation of the circularization process, the code now checks if eccentricity is zero.
+     If it is, the circularization process is skipped, enhancing computational efficiency.
+V 2.10.5 [01-11-2024]
+    - Added a more robust handling of scol and bcol, now if a star property is included in bcol and viceversa
+      an error is raised
+V 2.10.4 [24-07-2024]
+    - Solved a bug in the implementation of check stalling (before it was not thread safe)
+V 2.10.3 [23-07-2024]
+    - Added a modification on the EvolveFunctor constructor to be sure that only one instance of the functor is present.
+V 2.10.2 [03-07-2024]
+    - Changes in the SN model deathmatrix. Now if the Mass of the remnant from the Woosley table
+    is within 5% of the preSN mass of the Hecore we flag the event as a direct collapse and the final
+    remnant mass is equal to the total preSN mass. This choice is based on the fact that the Woosley
+    paper used pureHe simulations, therefore the Mremnant could be underestimate in the case of direct collapse.
+V 2.10.1 [24-06-2024]
+    - Changed the default wmode to hurley (the old name hurley_wind cannot be used anymore, but the model is the same)
+V 2.10.0 [30-05-2024]
+    - Changed the standard behaviour of SEVN when the stars  are flagged as WR. Before the star automatically
+      jumped to a pureHe track, but we realise this could introduce some minor bias in the stellar evolution.
+      We introduce a new runtime parameter turn_WR_to_pureHe so that we can split the flagging from the effect.
+      Internally in SEVN a star is still flagged as WR based on the runtime parameter star_tshold_WR_envelope.
+      However now a WR flagged star is turned into pureHe just if the parameter turn_WR_to_pureHe is set to True.
+      The default is False, so by default a WR flagged star will be jump to pureHe track. In this case,
+      a star can jump to pureHe tracks if it completely lose the envelope (based on the runtime parameter ev_naked_tshold).
+
+    - Updated Klencki lambda with a new tables and a new handling of systems with small radius (outside the validity of the fitting equations).
+      For star with R<Rtams, the lambda is estimated as lambda(Rtams)*Rtams/R so that the binding energy is constant at the value of the TAMS
+       and we avoid spikes at very high values due to the extrapolation of the lambda fitting equations.
+
+V 2.9.0 [23-05-2024]
+    - Changes made to improve the stability of the adaptive timestep when also the Star spin is checked.
+    - Added the runtime parameter check_stalling_time to set the number of second to wait before to flag
+      a system as stalling
+    - Now the default evolve functor do not store in the output files the output of the failed files
+    - Solved a bug that was not registering the Windaccretion process (just in the V 2.8.1), so this process was not taken into account
+V 2.8.1 [16-05-2024]
+    - Reintroduced the check for stalling system. Now if a system evolve for more than 20s the systems is considered
+    to be stalling, the evolution is stopped and the system is flagged as failed.
+V 2.8.0 [16-04-2024]
+    - Added the new boolean runtime parameter ns_detailed_accretion to activate the detailed handling of accretion on a NS
+       accounting for the change in magnetic field and spin of the NS due to the mass accretion
+    - Hurley kicks refactored to avoid to have the kicks internally stored in different units when a BSN kick is triggered.
+      Now when getting the SNkick from a class star they are always in units of km/s
+V 2.7.7 [15-04-2024]
+    - Added the new Roche Lobe overflow model Hurley_rl_propeller, it is the same as Hurley_rl but including
+    the propeller mechanism by Campana+18 for accretion on Neutron Stars
+V 2.7.6 [24-03-2024]
+    - Docker update: Docker image refactored
+    - BUG FIX: Fixed a bug on the Klencki+21 lambda estimate (star_lambda option -5)
+V 2.7.5 [04-02-2024]
+    - BUG FIX: refactor the function XspinMESA in remnant.h to avoid to have negative spin sometime due to the extrapolation of the fitting equation.
+V 2.7.4 [05-01-2024]
+    - Remove old qcrit implementation (not used anymore)
+V 2.7.3 [22-08-2023]
+    - Added the Dockerfiles
+V 2.7.2 [21-08-2023]
+    - Override update_from_binary for the Radius to take into account that Radius is stored internally in log
+V 2.7.1 [17-08-2023]
+    - SEVN does not print anymore messages while load tables
+    - Removed test parameters
+V 2.7.0 [16-08-2023]
+    - Refactoring of the include/src file and changed Cmake accordingly
+V 2.6.5 [31-07-2023]
+	- Other Minor internal change in IO.h
+	- Added the function utilities::get_absolute_SEVN_path() to return the SEVN path
+	- Now the parameter myself, tables and tables_HE have non-empty default
+	- Added new property Plife
+V 2.6.4 [25-07-2023]
+	- Minor internal change in IO.h
+V 2.6.3 [14-07-2023]
+	- More robust exploration of the tables and directory whe loading the tables
+V 2.6.2 [30-05-2023]
+	- Fixed round-off error in Geneva X-spin
+V 2.6.1 [03-05-2023]
+	- Added the hardcoded options for the initialisation of B0 and Omega0 for the NS (from the paper Sgalletta+23).
+	- Added the possibility to accrete mass on NSs during a CE (but commented by default)
+V 2.6.0 [02-05-2023]
+	- Added Zombie remnant
+	- Mod on jump_to_pureHe: if the total mass is less than the minimum ZAMS mass in the  pureHe tables, but the total mass is <0.4 the stars is automatically transformed in a WD (HeWD if MCO=0)
+V 2.5.0 [26-04-2023]
+    - Change in RLO:special_evolve to fix a source of failure
+    - Changed the standard INTWPHASE parameter in run_sse.sh from linear to rational
+    - New conditions for the definitions of WDs (if MCO<0, HeWD otherwise COWD (MHE<1.6 Msun) or ONeWD (MCO>1.6 Msun))
+    - Modifications in jumping to pureHe stars for low mass stars.  Low-mass (Mzams<M helium flash approx 2 Msun) stars that have not developed a CO core yet and got stripped by the envelope are directly transformed in HeWD
+    - Error included: if the condition above is not satisfied by the star that is turning into a pureHe has MHE<MTot_min in the tracks an error is returned
+V 2.4.1
+    - Added optional options to enable code coverage in Cmake
+V 2.4.0
+    - Added mass transfer stability model "stable" in which the mass transfer are always stable (except peculiar cases depending on the RLO formalism)
+    - Fixed a typo in printing the log message of mergers after a CE
+V 2.3.1
+    - Fixed a bug on RocheLobe special evolve
+V 2.3.0
+    - Fixed a typo on the ECSN formation and kicks and in the Gua NS model for ECSN the maixmum mass is limited to the MCO mass
+V 2.2.0
+    - A failed CE now prints also a merger message to the logfile
+V 2.1.9
+    - Update the default values for tabuse_envcov, xspinmode and circmode
+V 2.1.8
+    - Changes in RLO special evolve
+V 2.1.7
+    - Fixed a bug during swallowing
+V 2.1.6
+    - Added a more robust way to initialise Star and Binstar to avoid memory leak in case of initialisation failure.
+
+V 2.1.4
+	- Introduction of SEVN versioning
+
+V 2.1.3
+    - Fixed a minor bug due to the possibility that RHE>Radius
+    at the initialisation of a massive (>400 Msun) and metal-rich star (Z0.03)
+    - Added the parameter ev_R_linear_interp to force to use linear values for the radius interpolation even if it is stored in log
+
+V 2.1.2
+    - Now cmake is capable to install SEVN as a package and we add an automatic versioning
+    - Fixed some minor bugs
+    - Better handling of consecutive RLO (RLO starts one step after the previous RLO ends)
+    - Fixed a bug preventing critical error to be printed in output if loglevel=critical
+
+
+
+V 2.1.0:
+   - Added the dout option eventsrlo, to print the events + all the steps during a RLO
+   - Added the star property JIT property dMRLOdt, i.e. the rate (Msun/Myr) of Mass accreted or lost during a RLO
+   - Added the star property dMcumulacc_wind storing the cumulative accreted mass through winds
+   - Added the JIT star property dMaccwinddt storing the accretion rate through winds (Msun/Myr)
+   - Fixed an error in the method limit_and_correct_mass_transfer_for_donor_from_binary  and added
+      the correction also to dMcumul_binary, dMcumul_RLO and dMcumulacc_wind that previously were not corrected.
+
+
+V 2.0.1:
+    - Introduced cmake options to just compile the SEVN libraries (static or dynamic).
+    - Added make install to install the libraries
+    - Added the script sevnenv to set environment variables that are useful when compiling including SEVN libraries
+    - Updated the SEVN guide
+    - Added the folder sevnlib_examples containing examples on how to set-up a custom main
