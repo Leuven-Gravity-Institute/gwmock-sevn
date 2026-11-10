@@ -5,7 +5,7 @@ description: Utility functions.
 
 <!-- prettier-ignore-start -->
 
-::: python_package_template.utils
+::: gwmock_sevn.utils
     options:
         members:
             - hello
