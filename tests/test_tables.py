@@ -7,6 +7,7 @@ import io
 import tarfile
 import urllib.error
 from email.message import Message
+from pathlib import Path
 
 import pytest
 
@@ -143,3 +144,35 @@ def test_an_archive_entry_cannot_escape_the_cache(monkeypatch, fake_manifest, tm
     tables.fetch("tracks")
 
     assert not list(tmp_path.rglob("escape.dat"))
+
+
+def test_concurrent_fetches_download_once_and_never_replace_a_verified_set(monkeypatch, fake_manifest):
+    """A second fetcher waits for the first, then finds the set verified and leaves it alone."""
+    import threading
+
+    started = threading.Event()
+    release = threading.Event()
+    requested: list[str] = []
+    archive = _archive(fake_manifest, "tracks")
+
+    def _slow_download(url, target):
+        requested.append(url)
+        started.set()
+        release.wait(5)
+        target.write_bytes(archive)
+
+    monkeypatch.setattr(tables, "_download", _slow_download)
+    results: list[Path] = []
+    first = threading.Thread(target=lambda: results.append(tables.fetch("tracks")))
+    first.start()
+    started.wait(5)
+    second = threading.Thread(target=lambda: results.append(tables.fetch("tracks")))
+    second.start()
+    release.set()
+    first.join(10)
+    second.join(10)
+
+    assert len(requested) == 1
+    assert len(results) == 2
+    assert results[0] == results[1]
+    assert (results[0] / "0001" / "mass.dat").read_bytes() == b"1 2 3\n"

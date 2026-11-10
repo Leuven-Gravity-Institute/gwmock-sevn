@@ -1,0 +1,35 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -19,7 +19,9 @@
+ endif()
+ 
+ find_package(Git)
+-find_file(GITDIR NAMES .git PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
++# gwmock-sevn: look for SEVN's own repository only. Built as a subproject, CMAKE_SOURCE_DIR is the
++# parent project, whose commit would otherwise be reported as SEVN's.
++find_file(GITDIR NAMES .git PATHS ${PROJECT_SOURCE_DIR} NO_DEFAULT_PATH)
+ 
+ 
+ 
+@@ -123,6 +125,10 @@
+     message("Not Using a git cloned repository")
+     set(GIT_BRANCH "NOT AVAILABLE")
+     set(GIT_SHA_LOCAL "NOT AVAILABLE")
++    # gwmock-sevn: a vendored copy has no repository; the parent project names the commit it came from.
++    if(DEFINED SEVN_VENDORED_COMMIT)
++        set(GIT_SHA_LOCAL "${SEVN_VENDORED_COMMIT}")
++    endif()
+     set(GIT_SHATIME_LOCAL "NOT AVAILABLE")
+     set(GIT_SHATIMESTAMP_LOCAL "0")
+     set(GIT_COUNTER_LOCAL "0")
+@@ -135,7 +141,9 @@
+ #@TODO there is a missing case, i.e. when it is a git repo but It has not a remote (i.e. a new local branch)
+ #in this case we will have problems in compiling because the sevn.h variable will be not set
+ 
+-configure_file("${PROJECT_SOURCE_DIR}/include/sevn_version.h.in" "${PROJECT_SOURCE_DIR}/include/sevn_version.h")
++# gwmock-sevn: generated in the build tree, so a build never writes into the source it packages.
++configure_file("${PROJECT_SOURCE_DIR}/include/sevn_version.h.in" "${PROJECT_BINARY_DIR}/include/sevn_version.h")
++include_directories(${PROJECT_BINARY_DIR}/include)
+ 
+ 
+ 

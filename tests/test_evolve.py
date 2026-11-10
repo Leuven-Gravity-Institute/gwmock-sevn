@@ -142,3 +142,39 @@ def test_a_parameter_gwmock_sevn_sets_is_refused(name):
     """A parameter gwmock sevn sets is refused."""
     with pytest.raises(ValueError, match="set by gwmock-sevn"):
         evolve_binaries(_binaries(2), options={name: "x"})
+
+
+def test_two_binaries_with_one_seed_are_refused():
+    """SEVN names a binary from its seed; two equal seeds would merge their logfile events."""
+    binaries = _binaries(3)
+    binaries["seed"][2] = binaries["seed"][0]
+    with pytest.raises(ValueError, match="its own seed"):
+        evolve_binaries(binaries)
+
+
+def test_two_binaries_sevn_named_alike_are_refused():
+    """A name shared by two binaries is an error, not a silent attribution to one of them."""
+    from gwmock_sevn.evolve import _positions_by_name
+
+    assert _positions_by_name({"name": ["a", "a", "b"], "ID": ["0", "0", "1"]}) == {"a": 0, "b": 1}
+    with pytest.raises(RuntimeError, match="the same name a"):
+        _positions_by_name({"name": ["a", "b", "a"], "ID": ["0", "1", "2"]})
+
+
+def test_an_integer_column_beyond_int64_is_kept():
+    """Too wide for int64, a column falls back to floats instead of failing the run."""
+    from gwmock_sevn.evolve import _as_array
+
+    assert _as_array(["1", "2"]).dtype == np.int64
+    assert _as_array(["9223372036854775808", "1"]).dtype == np.float64
+    assert _as_array(["rapid", "1"]).dtype.kind == "U"
+
+
+def test_the_program_reports_the_vendored_sevn_commit():
+    """The bundled program's own provenance names SEVN's commit, not this package's."""
+    import subprocess
+
+    from gwmock_sevn import SEVN_COMMIT, executable
+
+    info = subprocess.run([str(executable())], capture_output=True, text=True, check=True).stdout  # noqa: S603
+    assert SEVN_COMMIT in info

@@ -12,6 +12,8 @@ The tables are fetched from SEVN's own repository at that commit, not redistribu
 
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import hashlib
 import json
 import os
@@ -136,9 +138,29 @@ def fetch(table_set: str, commit: str = SEVN_COMMIT) -> Path:
         raise ValueError(f"No table set {table_set!r} at SEVN commit {commit}; known: {', '.join(sorted(recorded))}.")
     files_of_set = recorded[table_set]
     directory = cache_root() / "tables" / commit / table_set
-    if directory.is_dir() and not _verified(directory, files_of_set):
-        return directory
     directory.parent.mkdir(parents=True, exist_ok=True)
+    # One fetcher per set at a time: a second process waits, then finds the set verified and leaves
+    # it alone, so a set another run is reading is never replaced under it.
+    with _locked(directory.with_suffix(".lock")):
+        if directory.is_dir() and not _verified(directory, files_of_set):
+            return directory
+        _download_set(table_set, commit, files_of_set, directory)
+    return directory
+
+
+@contextlib.contextmanager
+def _locked(path: Path):
+    """Hold an exclusive advisory lock on *path* for the duration of the block."""
+    with path.open("a") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+
+
+def _download_set(table_set: str, commit: str, files_of_set: dict[str, dict[str, Any]], directory: Path) -> None:
+    """Download, verify and publish *table_set* at *directory*; the caller holds the set's lock."""
     with tempfile.TemporaryDirectory(dir=directory.parent) as scratch:
         archive = Path(scratch) / "tables.tar.gz"
         _download(_ARCHIVE_URL.format(commit=commit, table_set=table_set), archive)
@@ -160,6 +182,6 @@ def fetch(table_set: str, commit: str = SEVN_COMMIT) -> Path:
                 f"recorded SHA-256, e.g. {bad[0]}; refusing the download."
             )
         if directory.exists():
+            # Present but not verified (incomplete or altered); nobody else is fetching it.
             shutil.rmtree(directory)
         staged.replace(directory)
-    return directory

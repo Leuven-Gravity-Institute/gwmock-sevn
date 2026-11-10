@@ -16,6 +16,10 @@ set(h5 OFF CACHE BOOL "" FORCE)
 # parallelised by running several SEVN processes instead (see gwmock_sevn.evolve).
 set(openmp OFF CACHE BOOL "" FORCE)
 
+# The SEVN commit the vendored source came from, reported by the program as its own (patch 0002).
+file(STRINGS extern/sevn/VENDORED _vendored_commit REGEX "^commit = ")
+string(REGEX REPLACE "^commit = " "" SEVN_VENDORED_COMMIT "${_vendored_commit}")
+
 add_subdirectory(extern/sevn)
 
 # Only these are installed into the wheel. SEVN's own install rules (libraries, headers,

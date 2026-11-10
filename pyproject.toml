@@ -62,7 +62,12 @@ wheel.packages = ["src/gwmock_sevn"]
 # Only gwmock-sevn's own install rules: SEVN's libraries, headers and CMake package files stay out.
 install.components = ["gwmock_sevn"]
 sdist.include = ["extern/sevn", "src/gwmock_sevn/_version.py"]
-sdist.exclude = ["build", ".venv", "mutants"]
+sdist.exclude = [
+  "build",
+  ".venv",
+  "mutants",
+  "extern/sevn/include/sevn_version.h",
+]
 build.verbose = false
 
 [tool.setuptools_scm]
