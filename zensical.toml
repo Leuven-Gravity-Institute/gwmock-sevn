@@ -48,11 +48,8 @@ nav = [
   { "Get Started" = "index.md" },
   { "API" = [
     { "Overview" = "api/index.md" },
-    { "Hello World" = "api/hello_world.md" },
-    { "Utility" = [
-      { "Overview" = "api/utils/index.md" },
-      { "Logging" = "api/utils/log.md" },
-    ] },
+    { "Evolving binaries" = "api/evolve.md" },
+    { "Track tables" = "api/tables.md" },
   ] },
   { "Contributing" = "contributing.md" },
   { "Security" = "security.md" },

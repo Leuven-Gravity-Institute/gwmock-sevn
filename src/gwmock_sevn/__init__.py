@@ -1,4 +1,8 @@
-"""Top-level package for gwmock_sevn."""
+"""SEVN binary population synthesis as an installable Python package.
+
+The wheel carries SEVN's binary-evolution program built from a pinned SEVN commit; the
+stellar-track tables are fetched by digest on first use. See :func:`evolve_binaries`.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +10,17 @@ from __future__ import annotations
 # Ignored on 3.13/3.14 where the lazy import machinery does not exist.
 __lazy_modules__ = ["gwmock_sevn.version"]
 
-from gwmock_sevn.hello_world import goodbye_world, hello_goodbye, hello_world, say_goodbye, say_hello
+from gwmock_sevn.evolve import INPUT_COLUMNS, EvolutionResult, evolve_binaries, executable
+from gwmock_sevn.tables import SEVN_COMMIT, fetch, table_sets
 from gwmock_sevn.version import __version__
 
-__all__ = ["__version__", "goodbye_world", "hello_goodbye", "hello_world", "say_goodbye", "say_hello"]
+__all__ = [
+    "INPUT_COLUMNS",
+    "SEVN_COMMIT",
+    "EvolutionResult",
+    "__version__",
+    "evolve_binaries",
+    "executable",
+    "fetch",
+    "table_sets",
+]

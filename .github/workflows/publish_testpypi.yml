@@ -21,8 +21,10 @@ permissions:
     contents: read
 
 jobs:
-    build:
+    version:
         runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.version.outputs.version }}
         steps:
             - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
               with:
@@ -30,23 +32,14 @@ jobs:
                   ref: ${{ inputs.tag_name || github.sha }}
                   fetch-depth: 0
 
-            - name: Output build information
-              env:
-                  TAG_NAME: ${{ inputs.tag_name || github.sha }}
-              run: |
-                  echo "### Publishing Build :package:" >> $GITHUB_STEP_SUMMARY
-                  echo "- **Version tag**: $TAG_NAME" >> $GITHUB_STEP_SUMMARY
-
             - name: Install uv
               uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
               with:
-                  python-version: '3.14.3'
-                  enable-cache: 'true'
+                  python-version: '3.13'
+                  enable-cache: 'false'
 
-            - name: Install dependencies
-              run: uv sync --group build --frozen
-
-            - name: Set version for publishing
+            - name: Choose the version
+              id: version
               env:
                   # Resolved in `env:` rather than in `run:` so the
                   # user-supplied tag name can never be interpreted by the
@@ -57,22 +50,17 @@ jobs:
                     # Use the tag, stripping 'v' prefix if present
                     VERSION=$(echo "$TAG_NAME" | sed 's/^v//')
                   else
-                    # For untagged builds, use a dev version without local part
-                    # Get the dev version from hatch-vcs, then strip +local
-                    VERSION=$(uv run --frozen hatch version | sed 's/+.*//')
+                    # For untagged builds, a dev version without the local part, which TestPyPI refuses
+                    VERSION=$(uvx --from 'setuptools-scm>=8' python -m setuptools_scm | sed 's/+.*//')
                   fi
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-                  # Update pyproject.toml with sed
-                  sed -i "s/dynamic = \[\"version\"\]/version = \"$VERSION\"\ndynamic = []/" pyproject.toml
-
-            - name: Build distribution
-              run: uv build
-
-            - name: Upload build artifacts
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-              with:
-                  name: python-package-distributions
-                  path: dist/
+    build:
+        needs: version
+        uses: ./.github/workflows/build_distributions.yml # zizmor: ignore[self-repository]
+        with:
+            ref: ${{ inputs.tag_name || github.sha }}
+            version: ${{ needs.version.outputs.version }}
 
     publish-to-testpypi:
         needs: build

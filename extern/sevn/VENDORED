@@ -1,0 +1,4 @@
+repository = https://gitlab.com/sevncodes/sevn.git
+tag = v2.17.5
+commit = bfd71ed7c7437e0d66d4af98f7b7f1998de4216e
+patch = 0001-sevn-path-from-environment.patch

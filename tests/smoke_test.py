@@ -18,17 +18,16 @@ def test_basic_import() -> None:
         print(f"Warning: Package imported from unexpected location: {gwmock_sevn.__file__}")
 
 
-def test_cli_help() -> None:
-    """Test CLI help."""
-    # Ensure the 'my-tool' command was registered and runs
-    result = subprocess.run(["gwmock_sevn", "--help"], capture_output=True, text=True, check=False)  # noqa: S607
+def test_the_bundled_sevn_runs() -> None:
+    """The wheel's SEVN program starts: without arguments it prints its parameters and exits 0."""
+    result = subprocess.run([str(gwmock_sevn.executable())], capture_output=True, text=True, check=False)  # noqa: S603
     assert result.returncode == 0
-    assert "usage:" in result.stdout.lower()
+    assert "SEVN" in result.stdout
 
 
 if __name__ == "__main__":
     test_basic_import()
     print("Smoke test passed: Package is importable.")
 
-    test_cli_help()
-    print("Smoke test passed: The CLI is executable.")
+    test_the_bundled_sevn_runs()
+    print("Smoke test passed: The bundled SEVN program runs.")
