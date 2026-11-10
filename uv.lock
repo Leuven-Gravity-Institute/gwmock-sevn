@@ -208,7 +208,7 @@ release = [
 requires-dist = [{ name = "numpy", specifier = ">=2.3" }]
 
 [package.metadata.requires-dev]
-build = [{ name = "build", specifier = ">=1.3" }]
+build = [{ name = "build", specifier = ">=1.6.1" }]
 dev = [
     { name = "mutmut", specifier = ">=3.8.1" },
     { name = "prek", specifier = ">=0.5.10" },
