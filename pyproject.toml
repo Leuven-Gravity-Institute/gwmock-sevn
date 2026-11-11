@@ -77,7 +77,7 @@ version_file = "src/gwmock_sevn/_version.py"
 local_scheme = "no-local-version"
 
 [tool.cibuildwheel]
-build = "cp313-* cp314-*"
+build = "cp313-* cp314-* cp315-*"
 # musl and 32-bit Linux are not built; SEVN's program is plain C++ and could be, if asked for.
 skip = "*-musllinux_* *_i686"
 build-frontend = "build[uv]"
