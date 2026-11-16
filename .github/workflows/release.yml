@@ -30,6 +30,10 @@ jobs:
     # release, which then goes out with the changelog alone.
     highlights:
         runs-on: ubuntu-latest
+        # Job-level as well as on the Claude step: a failed checkout or changelog here would
+        # otherwise fail this whole reusable workflow, and a caller that waits on it (the PyPI
+        # publish in scheduled_release.yml) would be skipped although the release went out.
+        continue-on-error: true
         permissions:
             contents: read
         outputs:
